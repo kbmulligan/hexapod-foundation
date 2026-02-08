@@ -130,12 +130,22 @@ if __name__ == '__main__':
         led.color_wipe([255, 0, 0])  # Red wipe
         led.color_wipe([0, 255, 0])  # Green wipe
         led.color_wipe([0, 0, 255])  # Blue wipe
+
+        print("theater chase animation")
+        led.theater_chase([255, 255, 0], wait_ms=400)
+
         print("rainbow animation")
         led.rainbow(wait_ms=5)
+
         print("rainbow_cycle animation")
         led.rainbow_cycle(wait_ms=5)
+
+        print("turn off")
         led.color_wipe([0, 0, 0], 10)
-    except KeyboardInterrupt:  # When 'Ctrl+C' is pressed, the child program destroy() will be executed.
+
+    # When 'Ctrl+C' is pressed, the child program destroy() will be executed.
+    except KeyboardInterrupt:
         led.color_wipe([0, 0, 0], 10)
+
     finally:
         print("\nEnd of program")

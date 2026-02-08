@@ -11,6 +11,10 @@ from command import COMMAND as cmd
 from imu import IMU
 from servo import Servo
 
+FRONT_LEG_OFFSET = -94
+MIDDLE_LEG_OFFSET = -85
+BACK_LEG_OFFSET = -94
+
 class Control:
     def __init__(self):
         self.imu = IMU()
@@ -33,7 +37,7 @@ class Control:
         self.calibrate()
         self.set_leg_angles()
         self.condition_thread = threading.Thread(target=self.condition_monitor)
-        self.Thread_conditiona = threading.Condition()
+        self.Thread_condition = threading.Condition()
 
     def read_from_txt(self, filename):
         with open(filename + ".txt", "r") as file:
@@ -83,9 +87,12 @@ class Control:
 
     def set_leg_angles(self):
         if self.check_point_validity():
+            # convert each desired leg coordinate to a vector of angles for each leg servo
             for i in range(6):
                 self.current_angles[i][0], self.current_angles[i][1], self.current_angles[i][2] = self.coordinate_to_angle(
                     -self.leg_positions[i][2], self.leg_positions[i][0], self.leg_positions[i][1])
+
+            # bound the angles for each leg
             for i in range(3):
                 self.current_angles[i][0] = self.restrict_value(self.current_angles[i][0] + self.calibration_angles[i][0], 0, 180)
                 self.current_angles[i][1] = self.restrict_value(90 - (self.current_angles[i][1] + self.calibration_angles[i][1]), 0, 180)
@@ -93,6 +100,7 @@ class Control:
                 self.current_angles[i + 3][0] = self.restrict_value(self.current_angles[i + 3][0] + self.calibration_angles[i + 3][0], 0, 180)
                 self.current_angles[i + 3][1] = self.restrict_value(90 + self.current_angles[i + 3][1] + self.calibration_angles[i + 3][1], 0, 180)
                 self.current_angles[i + 3][2] = self.restrict_value(180 - (self.current_angles[i + 3][2] + self.calibration_angles[i + 3][2]), 0, 180)
+
             # Leg 1
             self.servo.set_servo_angle(15, self.current_angles[0][0])
             self.servo.set_servo_angle(14, self.current_angles[0][1])
@@ -117,6 +125,7 @@ class Control:
             self.servo.set_servo_angle(22, self.current_angles[3][0])
             self.servo.set_servo_angle(23, self.current_angles[3][1])
             self.servo.set_servo_angle(27, self.current_angles[3][2])
+
         else:
             print("This coordinate point is out of the active range")
 
@@ -136,6 +145,7 @@ class Control:
                 self.timeout = time.time()
                 self.relax(True)
                 self.status_flag = 0x00
+
             if cmd.CMD_POSITION in self.command_queue and len(self.command_queue) == 4:
                 if self.status_flag != 0x01:
                     self.relax(False)
@@ -145,6 +155,7 @@ class Control:
                 self.move_position(x, y, z)
                 self.status_flag = 0x01
                 self.command_queue = ['', '', '', '', '', '']
+
             elif cmd.CMD_ATTITUDE in self.command_queue and len(self.command_queue) == 4:
                 if self.status_flag != 0x02:
                     self.relax(False)
@@ -156,6 +167,7 @@ class Control:
                 self.set_leg_angles()
                 self.status_flag = 0x02
                 self.command_queue = ['', '', '', '', '', '']
+
             elif cmd.CMD_MOVE in self.command_queue and len(self.command_queue) == 6:
                 if self.command_queue[2] == "0" and self.command_queue[3] == "0":
                     self.run_gait(self.command_queue)
@@ -165,6 +177,7 @@ class Control:
                         self.relax(False)
                     self.run_gait(self.command_queue)
                     self.status_flag = 0x03
+
             elif cmd.CMD_BALANCE in self.command_queue and len(self.command_queue) == 2:
                 if self.command_queue[1] == "1":
                     self.command_queue = ['', '', '', '', '', '']
@@ -172,6 +185,7 @@ class Control:
                         self.relax(False)
                     self.status_flag = 0x04
                     self.imu6050()
+
             elif cmd.CMD_CALIBRATION in self.command_queue:
                 self.timeout = 0
                 self.calibrate()
@@ -225,27 +239,27 @@ class Control:
 
     def transform_coordinates(self, points):
         # Leg 1
-        self.leg_positions[0][0] = points[0][0] * math.cos(54 / 180 * math.pi) + points[0][1] * math.sin(54 / 180 * math.pi) - 94
+        self.leg_positions[0][0] = points[0][0] * math.cos(54 / 180 * math.pi) + points[0][1] * math.sin(54 / 180 * math.pi) + FRONT_LEG_OFFSET 
         self.leg_positions[0][1] = -points[0][0] * math.sin(54 / 180 * math.pi) + points[0][1] * math.cos(54 / 180 * math.pi)
         self.leg_positions[0][2] = points[0][2] - 14
         # Leg 2
-        self.leg_positions[1][0] = points[1][0] * math.cos(0 / 180 * math.pi) + points[1][1] * math.sin(0 / 180 * math.pi) - 85
+        self.leg_positions[1][0] = points[1][0] * math.cos(0 / 180 * math.pi) + points[1][1] * math.sin(0 / 180 * math.pi) + MIDDLE_LEG_OFFSET
         self.leg_positions[1][1] = -points[1][0] * math.sin(0 / 180 * math.pi) + points[1][1] * math.cos(0 / 180 * math.pi)
         self.leg_positions[1][2] = points[1][2] - 14
         # Leg 3
-        self.leg_positions[2][0] = points[2][0] * math.cos(-54 / 180 * math.pi) + points[2][1] * math.sin(-54 / 180 * math.pi) - 94
+        self.leg_positions[2][0] = points[2][0] * math.cos(-54 / 180 * math.pi) + points[2][1] * math.sin(-54 / 180 * math.pi) + BACK_LEG_OFFSET 
         self.leg_positions[2][1] = -points[2][0] * math.sin(-54 / 180 * math.pi) + points[2][1] * math.cos(-54 / 180 * math.pi)
         self.leg_positions[2][2] = points[2][2] - 14
         # Leg 4
-        self.leg_positions[3][0] = points[3][0] * math.cos(-126 / 180 * math.pi) + points[3][1] * math.sin(-126 / 180 * math.pi) - 94
+        self.leg_positions[3][0] = points[3][0] * math.cos(-126 / 180 * math.pi) + points[3][1] * math.sin(-126 / 180 * math.pi) + BACK_LEG_OFFSET
         self.leg_positions[3][1] = -points[3][0] * math.sin(-126 / 180 * math.pi) + points[3][1] * math.cos(-126 / 180 * math.pi)
         self.leg_positions[3][2] = points[3][2] - 14
         # Leg 5
-        self.leg_positions[4][0] = points[4][0] * math.cos(180 / 180 * math.pi) + points[4][1] * math.sin(180 / 180 * math.pi) - 85
+        self.leg_positions[4][0] = points[4][0] * math.cos(180 / 180 * math.pi) + points[4][1] * math.sin(180 / 180 * math.pi) + MIDDLE_LEG_OFFSET
         self.leg_positions[4][1] = -points[4][0] * math.sin(180 / 180 * math.pi) + points[4][1] * math.cos(180 / 180 * math.pi)
         self.leg_positions[4][2] = points[4][2] - 14
         # Leg 6
-        self.leg_positions[5][0] = points[5][0] * math.cos(126 / 180 * math.pi) + points[5][1] * math.sin(126 / 180 * math.pi) - 94
+        self.leg_positions[5][0] = points[5][0] * math.cos(126 / 180 * math.pi) + points[5][1] * math.sin(126 / 180 * math.pi) + FRONT_LEG_OFFSET
         self.leg_positions[5][1] = -points[5][0] * math.sin(126 / 180 * math.pi) + points[5][1] * math.cos(126 / 180 * math.pi)
         self.leg_positions[5][2] = points[5][2] - 14
 

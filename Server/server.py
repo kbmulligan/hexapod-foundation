@@ -16,6 +16,9 @@ from ultrasonic import Ultrasonic
 from command import COMMAND as cmd
 from camera import Camera  
 
+PORT_VIDEO = 8002
+PORT_COMMAND = 5002
+
 class StreamingOutput(io.BufferedIOBase):
     def __init__(self):
         self.frame = None
@@ -55,11 +58,11 @@ class Server:
         host_ip = self.get_interface_ip()
         self.video_socket = socket.socket()
         self.video_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        self.video_socket.bind((host_ip, 8002))
+        self.video_socket.bind((host_ip, PORT_VIDEO))
         self.video_socket.listen(1)
         self.command_socket = socket.socket()
         self.command_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-        self.command_socket.bind((host_ip, 5002))
+        self.command_socket.bind((host_ip, PORT_COMMAND))
         self.command_socket.listen(1)
         print('Server address: ' + host_ip)
 
@@ -69,7 +72,8 @@ class Server:
             self.video_connection.close()
             self.command_connection.close()
         except:
-            print('\n' + "No client connection")
+            print("")
+            print("No client connection")
 
     def reset_server(self):
         # Reset the server by stopping and then starting it again
@@ -175,6 +179,7 @@ class Server:
                         pass
                     self.led_thread = threading.Thread(target=self.led_controller.process_light_command, args=(command_parts,))
                     self.led_thread.start()
+
                 elif cmd.CMD_SONIC in command_parts:
                     response_command = cmd.CMD_SONIC + "#" + str(self.ultrasonic_sensor.get_distance()) + "\n"
                     self.send_data(self.command_connection, response_command)
