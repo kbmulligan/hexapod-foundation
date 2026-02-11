@@ -1,6 +1,9 @@
 import smbus  # Import the smbus module for I2C communication
 import time  # Import the time module for sleep functionality
 
+SERVO_POWER_CHANNEL = 0
+CONTROL_POWER_CHANNEL = 4
+
 class ADC:
     def __init__(self):
         """Initialize the ADC class."""
@@ -34,13 +37,19 @@ class ADC:
         command_set = self.ADS7830_COMMAND | ((((channel << 2) | (channel >> 1)) & 0x07) << 4)  # Calculate the command set for the specified channel
         self.i2c_bus.write_byte(self.I2C_ADDRESS, command_set)                # Write the command set to the ADC
         value = self._read_stable_byte()                                      # Read a stable byte from the ADC
-        voltage = value / 255.0 * 5 * self.adc_voltage_coefficient                # Convert the ADC value to voltage
+        voltage = value / 255.0 * 5 * self.adc_voltage_coefficient            # Convert the ADC value to voltage
         return round(voltage, 2)                                              # Return the voltage rounded to 2 decimal places
+
+    def read_battery_voltage_controller(self):
+        return self.read_channel_voltage(CONTROL_POWER_CHANNEL)               # Read the battery voltage from control power channel
+
+    def read_battery_voltage_servo(self):
+        return self.read_channel_voltage(SERVO_POWER_CHANNEL)               # Read the battery voltage from servo power channel
 
     def read_battery_voltage(self) -> float:
         """Read the battery voltage using ADS7830."""
-        battery1 = self.read_channel_voltage(0)                                   # Read the battery voltage from channel 0
-        battery2 = self.read_channel_voltage(4)                                   # Read the battery voltage from channel 4
+        battery1 = self.read_channel_voltage(0)                               # Read the battery voltage from channel 0
+        battery2 = self.read_channel_voltage(4)                               # Read the battery voltage from channel 4
         return battery1,battery2
 
     def close_i2c(self) -> None:

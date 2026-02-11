@@ -38,6 +38,14 @@ class Led:
             self.strip.show()
             time.sleep(wait_ms / 1000.0)
 
+    def color_wipe_to(self, color, wipe_to_index, wait_ms=50):
+        """Wipe color across display a pixel at a time."""
+        wipe_to = min(self.strip.get_led_count(), wipe_to_index)
+        for i in range(wipe_to):
+            self.strip.set_led_rgb_data(i, color)
+            self.strip.show()
+            time.sleep(wait_ms / 1000.0)
+
     def wheel(self, pos):
         """Generate rainbow colors across 0-255 positions."""
         if pos < 0 or pos > 255:
@@ -93,6 +101,8 @@ class Led:
             index = index >> 1
         self.strip.show()
 
+
+
     def process_light_command(self, data):
         """Process light commands to control LED behavior."""
         old_mode = self.led_mode
@@ -121,27 +131,49 @@ class Led:
             while True:
                 self.rainbow_cycle()
 
+    def first_test(self):
+        DELAY_SEC = 1
+        color = [0, 127, 0]
+        MAX_LED = 8
+
+        for i in range(MAX_LED):
+            for j in range(i):
+                self.strip.set_led_rgb_data(j, color)
+            self.strip.show()
+            time.sleep(DELAY_SEC)
+
+        self.turn_off()
+
+    def turn_off(self):
+        self.color_wipe([0, 0, 0])
+
 # Main program logic follows:
 if __name__ == '__main__':
     print('Program is starting ... ')
     led = Led()
     try:
-        print("color_wipe animation")
-        led.color_wipe([255, 0, 0])  # Red wipe
-        led.color_wipe([0, 255, 0])  # Green wipe
-        led.color_wipe([0, 0, 255])  # Blue wipe
 
-        print("theater chase animation")
-        led.theater_chase([255, 255, 0], wait_ms=400)
+        led.first_test()
 
-        print("rainbow animation")
-        led.rainbow(wait_ms=5)
+        while True:
+            print("color_wipe animation")
+            led.color_wipe([255, 0, 0])  # Red wipe
+            led.color_wipe([0, 255, 0])  # Green wipe
+            led.color_wipe([0, 0, 255])  # Blue wipe
 
-        print("rainbow_cycle animation")
-        led.rainbow_cycle(wait_ms=5)
+            print("theater chase animation")
+            led.theater_chase([255, 255, 0], wait_ms=400)
 
-        print("turn off")
-        led.color_wipe([0, 0, 0], 10)
+            print("rainbow animation")
+            led.rainbow(wait_ms=5)
+
+            print("rainbow_cycle animation")
+            led.rainbow_cycle(wait_ms=5)
+
+            print("turn off")
+            led.color_wipe([0, 0, 0], 10)
+
+            time.sleep(3)
 
     # When 'Ctrl+C' is pressed, the child program destroy() will be executed.
     except KeyboardInterrupt:
