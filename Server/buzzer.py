@@ -19,7 +19,7 @@ if __name__ == '__main__':
     try:
         buzzer = Buzzer()                 # Create an instance of the Buzzer class
         buzzer.set_state(True)            # Turn on the buzzer
-        time.sleep(3)                     # Wait for 3 second
+        time.sleep(1)                     # Wait for 3 second
         buzzer.set_state(False)           # Turn off the buzzer
     finally:
         buzzer.close()                    # Ensure the buzzer pin is closed when the program is interrupted

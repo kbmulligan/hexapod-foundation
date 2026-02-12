@@ -11,9 +11,13 @@ from command import COMMAND as cmd
 from imu import IMU
 from servo import Servo
 
+GAIT_DELAY = 0.01
+
 FRONT_LEG_OFFSET = -94
 MIDDLE_LEG_OFFSET = -85
 BACK_LEG_OFFSET = -94
+
+DEFAULT_LEG_POSITION = [140, 0, 0]
 
 class Control:
     def __init__(self):
@@ -27,8 +31,14 @@ class Control:
         self.status_flag = 0x00
         self.timeout = 0
         self.body_height = -25
-        self.body_points = [[137.1, 189.4, self.body_height], [225, 0, self.body_height], [137.1, -189.4, self.body_height], 
-                           [-137.1, -189.4, self.body_height], [-225, 0, self.body_height], [-137.1, 189.4, self.body_height]]
+        self.body_points = [
+            [137.1, 189.4, self.body_height], 
+            [225, 0, self.body_height], 
+            [137.1, -189.4, self.body_height], 
+            [-137.1, -189.4, self.body_height], 
+            [-225, 0, self.body_height], 
+            [-137.1, 189.4, self.body_height]
+        ]
         self.calibration_leg_positions = self.read_from_txt('point')
         self.leg_positions = [[140, 0, 0], [140, 0, 0], [140, 0, 0], [140, 0, 0], [140, 0, 0], [140, 0, 0]]
         self.calibration_angles = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
@@ -73,7 +83,14 @@ class Control:
         return x, y, z
 
     def calibrate(self):
-        self.leg_positions = [[140, 0, 0], [140, 0, 0], [140, 0, 0], [140, 0, 0], [140, 0, 0], [140, 0, 0]]
+        self.leg_positions = [
+            DEFAULT_LEG_POSITION, 
+            DEFAULT_LEG_POSITION, 
+            DEFAULT_LEG_POSITION, 
+            DEFAULT_LEG_POSITION, 
+            DEFAULT_LEG_POSITION, 
+            DEFAULT_LEG_POSITION
+        ]
         for i in range(6):
             self.calibration_angles[i][0], self.calibration_angles[i][1], self.calibration_angles[i][2] = self.coordinate_to_angle(
                 -self.calibration_leg_positions[i][2], self.calibration_leg_positions[i][0], self.calibration_leg_positions[i][1])
@@ -350,7 +367,7 @@ class Control:
             F = round(self.map_value(int(data[4]), 2, 10, 171, 45))
         angle = int(data[5])
         z = Z / F
-        delay = 0.01
+        delay = GAIT_DELAY
         points = copy.deepcopy(self.body_points)
         xy = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]
         for i in range(6):
