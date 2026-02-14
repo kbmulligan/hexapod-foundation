@@ -98,7 +98,7 @@ class Server:
             self.video_connection, self.video_client_address = self.video_socket.accept()
             self.video_connection = self.video_connection.makefile('wb')
         except:
-            pass
+            print("Video connection exception")
         self.video_socket.close()
         print("Video socket connected ... ")
 
@@ -161,13 +161,13 @@ class Server:
                                 self.buzzer_controller.set_state(False)
                                 time.sleep(0.1)
                     except:
-                        pass
+                        print("Exception for ", cmd.CMD_POWER)
                 elif cmd.CMD_LED in command_parts:
                     try:
                         if self.led_thread is not None:
                             stop_thread(self.led_thread)
                     except:
-                        pass
+                        print("Exception for ", cmd.CMD_LED)
                     self.led_thread = threading.Thread(target=self.led_controller.process_light_command, args=(command_parts,))
                     self.led_thread.start()
 
@@ -176,7 +176,7 @@ class Server:
                         if self.led_thread is not None:
                             stop_thread(self.led_thread)
                     except:
-                        pass
+                        print("Exception for ", cmd.CMD_LED_MOD)
                     self.led_thread = threading.Thread(target=self.led_controller.process_light_command, args=(command_parts,))
                     self.led_thread.start()
 
@@ -214,12 +214,12 @@ class Server:
             if self.led_thread is not None:
                 stop_thread(self.led_thread)
         except:
-            pass
+            print("Exception while trying to check if led_thread is not None or stop_thread") 
         try:
             if self.ultrasonic_thread is not None:
                 stop_thread(self.ultrasonic_thread)
         except:
-            pass
+            print("Exception while trying to check if ultrasonic_thread is not None or stop_thread") 
         print("close_recv")
 
 if __name__ == '__main__':
