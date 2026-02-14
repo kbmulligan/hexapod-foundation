@@ -83,13 +83,14 @@ class Control:
         return x, y, z
 
     def calibrate(self):
+        # ensure assigning independent copies
         self.leg_positions = [
-            DEFAULT_LEG_POSITION, 
-            DEFAULT_LEG_POSITION, 
-            DEFAULT_LEG_POSITION, 
-            DEFAULT_LEG_POSITION, 
-            DEFAULT_LEG_POSITION, 
-            DEFAULT_LEG_POSITION
+            DEFAULT_LEG_POSITION[:],
+            DEFAULT_LEG_POSITION[:],
+            DEFAULT_LEG_POSITION[:],
+            DEFAULT_LEG_POSITION[:],
+            DEFAULT_LEG_POSITION[:],
+            DEFAULT_LEG_POSITION[:]
         ]
         for i in range(6):
             self.calibration_angles[i][0], self.calibration_angles[i][1], self.calibration_angles[i][2] = self.coordinate_to_angle(
