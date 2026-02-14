@@ -11,6 +11,14 @@ from command import COMMAND as cmd
 from imu import IMU
 from servo import Servo
 
+POS_X_LIMIT = 40
+POS_Y_LIMIT = 40
+POS_Z_LIMIT = 20
+
+ATT_ROLL_LIMIT = 15
+ATT_PITCH_LIMIT = 15
+ATT_YAW_LIMIT = 15
+
 GAIT_DELAY = 0.01
 
 FRONT_LEG_OFFSET = -94
@@ -167,9 +175,9 @@ class Control:
             if cmd.CMD_POSITION in self.command_queue and len(self.command_queue) == 4:
                 if self.status_flag != 0x01:
                     self.relax(False)
-                x = self.restrict_value(int(self.command_queue[1]), -40, 40)
-                y = self.restrict_value(int(self.command_queue[2]), -40, 40)
-                z = self.restrict_value(int(self.command_queue[3]), -20, 20)
+                x = self.restrict_value(int(self.command_queue[1]), -POS_X_LIMIT, POS_X_LIMIT)
+                y = self.restrict_value(int(self.command_queue[2]), -POS_Y_LIMIT, POS_Y_LIMIT)
+                z = self.restrict_value(int(self.command_queue[3]), -POS_Z_LIMIT, POS_Z_LIMIT)
                 self.move_position(x, y, z)
                 self.status_flag = 0x01
                 self.command_queue = ['', '', '', '', '', '']
@@ -177,9 +185,9 @@ class Control:
             elif cmd.CMD_ATTITUDE in self.command_queue and len(self.command_queue) == 4:
                 if self.status_flag != 0x02:
                     self.relax(False)
-                roll = self.restrict_value(int(self.command_queue[1]), -15, 15)
-                pitch = self.restrict_value(int(self.command_queue[2]), -15, 15)
-                yaw = self.restrict_value(int(self.command_queue[3]), -15, 15)
+                roll = self.restrict_value(int(self.command_queue[1]), -ATT_ROLL_LIMIT, ATT_ROLL_LIMIT)
+                pitch = self.restrict_value(int(self.command_queue[2]), -ATT_PITCH_LIMIT, ATT_PITCH_LIMIT)
+                yaw = self.restrict_value(int(self.command_queue[3]), -ATT_YAW_LIMIT, ATT_YAW_LIMIT)
                 points = self.calculate_posture_balance(roll, pitch, yaw)
                 self.transform_coordinates(points)
                 self.set_leg_angles()
@@ -362,6 +370,7 @@ class Control:
         gait = data[1]
         x = self.restrict_value(int(data[2]), -35, 35)
         y = self.restrict_value(int(data[3]), -35, 35)
+
         if gait == "1":
             F = round(self.map_value(int(data[4]), 2, 10, 126, 22))
         else:
@@ -370,13 +379,16 @@ class Control:
         z = Z / F
         delay = GAIT_DELAY
         points = copy.deepcopy(self.body_points)
+
         xy = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]
         for i in range(6):
             xy[i][0] = ((points[i][0] * math.cos(angle / 180 * math.pi) + points[i][1] * math.sin(angle / 180 * math.pi) - points[i][0]) + x) / F
             xy[i][1] = ((-points[i][0] * math.sin(angle / 180 * math.pi) + points[i][1] * math.cos(angle / 180 * math.pi) - points[i][1]) + y) / F
+
         if x == 0 and y == 0 and angle == 0:
             self.transform_coordinates(points)
             self.set_leg_angles()
+
         elif gait == "1":
             for j in range(F):
                 for i in range(3):

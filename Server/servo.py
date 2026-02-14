@@ -2,6 +2,8 @@
 from pca9685 import PCA9685
 import time
 
+PWM_RELAX = 4096
+
 def map_value(value, from_low, from_high, to_low, to_high):
     """Map a value from one range to another."""
     return (to_high - to_low) * (value - from_low) / (from_high - from_low) + to_low
@@ -18,27 +20,39 @@ class Servo:
 
     def set_servo_angle(self, channel, angle):
         """
-        Convert the input angle to the value of PCA9685 and set the servo angle.
+        Set the servo angle on a PCA9685 module.
         
         :param channel: Servo channel (0-31)
         :param angle: Angle in degrees (0-180)
         """
+        # Servo pulse range in microseconds
+        SERVO_MIN_US = 500   # 0 degrees
+        SERVO_MAX_US = 2500  # 180 degrees
+        PWM_PERIOD_US = 20000  # 20 ms period (50 Hz)
+        MAX_COUNT = 4095       # 12-bit PCA9685
+
+        # Convert angle to pulse width in µs
+        pulse_us = SERVO_MIN_US + (angle / 180.0) * (SERVO_MAX_US - SERVO_MIN_US)
+        
+        # Convert pulse width to PCA9685 register value
+        duty_count = int(pulse_us / PWM_PERIOD_US * MAX_COUNT)
+
+        # Select the correct board/module
         if channel < 16:
-            duty_cycle = map_value(angle, 0, 180, 500, 2500)
-            duty_cycle = map_value(duty_cycle, 0, 20000, 0, 4095)
-            self.pwm_41.set_pwm(channel, 0, int(duty_cycle))
-        elif channel >= 16 and channel < 32:
-            channel -= 16
-            duty_cycle = map_value(angle, 0, 180, 500, 2500)
-            duty_cycle = map_value(duty_cycle, 0, 20000, 0, 4095)
-            self.pwm_40.set_pwm(channel, 0, int(duty_cycle))
+            self.pwm_41.set_pwm(channel, 0, duty_count)
+        elif 16 <= channel < 32:
+            sub_channel = channel - 16
+            self.pwm_40.set_pwm(sub_channel, 0, duty_count)
+        else:
+            raise("Error: invalid channel must be between 0 and 32")
+
 
     def relax(self):
         """Relax all servos by setting their PWM values to 4096."""
         for i in range(8):
-            self.pwm_41.set_pwm(i + 8, 4096, 4096)
-            self.pwm_40.set_pwm(i, 4096, 4096)
-            self.pwm_40.set_pwm(i + 8, 4096, 4096)
+            self.pwm_41.set_pwm(i + 8, PWM_RELAX, PWM_RELAX)
+            self.pwm_40.set_pwm(i, PWM_RELAX, PWM_RELAX)
+            self.pwm_40.set_pwm(i + 8, PWM_RELAX, PWM_RELAX)
 
 RIGHT_KNEES = [10, 13, 31]
 LEFT_KNEES = [18, 21, 27]

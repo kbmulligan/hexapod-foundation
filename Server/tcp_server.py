@@ -145,10 +145,28 @@ class TCPServer:
         # Get a list of IP addresses of connected clients
         return [addr[0] for addr in self.client_sockets.values()]
 
-def get_interface_ip():
-    # Get the IP address of the specified network interface
+def get_interface_ip(ifname: str = "wlan0") -> str:
+    """
+    Get the IPv4 address of a specified network interface (Linux only).
+
+    :param ifname: Name of the network interface (e.g., 'wlan0', 'eth0')
+    :return: IP address as a string (e.g., '192.168.1.10')
+    """
+    SIOCGIFADDR = 0x8915
+
+    # Create a UDP socket (we're not sending anything)
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return socket.inet_ntoa(fcntl.ioctl(s.fileno(), 0x8915, struct.pack('256s', b'wlan0'[:15]))[20:24])
+
+    # Prepare the interface name in a fixed-size C-style struct
+    ifreq = struct.pack('256s', ifname.encode('utf-8')[:15])
+
+    # Perform the ioctl system call to get the IP address
+    res = fcntl.ioctl(s.fileno(), SIOCGIFADDR, ifreq)
+
+    # Extract the IP address bytes (20-24) and convert to string
+    ip_address = socket.inet_ntoa(res[20:24])
+
+    return ip_address
 
 if __name__ == "__main__":
     server = TCPServer()

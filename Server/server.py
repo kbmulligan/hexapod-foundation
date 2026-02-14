@@ -196,11 +196,11 @@ class Server:
                     if self.is_servo_relaxed == False:
                         self.control_system.relax(True)
                         self.is_servo_relaxed = True
-                        print("relax")
+                        print("servos relax")
                     else:
                         self.control_system.relax(False)
                         self.is_servo_relaxed = False
-                        print("unrelax")
+                        print("servos unrelax")
                 elif cmd.CMD_SERVOPOWER in command_parts:
                     if command_parts[1] == "0":
                         self.control_system.servo_power_disable.on()
