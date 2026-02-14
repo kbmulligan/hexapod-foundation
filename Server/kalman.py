@@ -1,3 +1,5 @@
+import time
+
 class Kalman_filter:
     def __init__(self, process_noise_covariance, measurement_noise_covariance):
         self.process_noise_covariance = process_noise_covariance  # Process noise covariance (Q)
@@ -22,7 +24,7 @@ class Kalman_filter:
         # Calculate Kalman gain (Kg = P_k_k1 / (P_k_k1 + R))
         self.kalman_gain = self.estimated_error_covariance / (self.estimated_error_covariance + self.measurement_noise_covariance)
         # Calculate Kalman filter output (x_k_k1 = x_k1_k1 + Kg * (Z_k - x_k1_k1))
-        kalman_output = self.posterior_estimate + self.kalman_gain * (self.current_measurement - self.previous_kalman_output)
+        kalman_output = self.posterior_estimate + self.kalman_gain * (self.current_measurement - self.posterior_estimate)
         # Update posterior estimate error covariance (P_k1_k1 = (1 - Kg) * P_k_k1)
         self.posterior_error_covariance = (1 - self.kalman_gain) * self.estimated_error_covariance
         # Update previous Kalman filter output
@@ -34,3 +36,4 @@ if __name__ == '__main__':
     for i in range(100):
         kalman_output = kalman_filter.kalman(i)
         print(f"Value: {i}, Kalman Output: {kalman_output}")
+        time.sleep(1/100)
