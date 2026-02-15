@@ -20,6 +20,12 @@ ATT_PITCH_LIMIT = 15
 ATT_YAW_LIMIT = 15
 
 GAIT_DELAY = 0.02
+GAIT_TRIPOD = "GAIT_TRIPOD" 
+GAIT_WAVE = "GAIT_WAVE" 
+GAIT_MAP = {
+    "1": GAIT_TRIPOD,
+    "2": GAIT_WAVE
+}
 
 FRONT_LEG_OFFSET = -94
 MIDDLE_LEG_OFFSET = -85
@@ -366,60 +372,72 @@ class Control:
             self.transform_coordinates(points)
             self.set_leg_angles()
 
-    def run_gait(self, data, Z=40, F=64):  # Example: data=['CMD_MOVE', '1', '0', '25', '10', '0']
-        gait = data[1]
-        x = self.restrict_value(int(data[2]), -35, 35)
-        y = self.restrict_value(int(data[3]), -35, 35)
+    def run_gait(self, data, Z=40):  # Example: data=['CMD_MOVE', '1', '0', '25', '10', '0']
+        gait, x_in, y_in, speed_str, angle_str = data
+        gait_mode = GAIT_MAP.get(gait, "ERROR_GETTING_GATE")
+        x = self.restrict_value(int(x_in), -35, 35)
+        y = self.restrict_value(int(y_in), -35, 35)
+        speed = int(speed_str)
+        angle = int(angle_str)
 
-        if gait == "1":
-            F = round(self.map_value(int(data[4]), 2, 10, 126, 22))
+        if gait_mode == GAIT_TRIPOD:
+            frames = round(self.map_value(speed, 2, 10, 126, 22))
         else:
-            F = round(self.map_value(int(data[4]), 2, 10, 171, 45))
-        angle = int(data[5])
-        z = Z / F
+            frames = round(self.map_value(speed, 2, 10, 171, 45))
+        frames = max(1, frames)
+
+
+        z = Z / frames
         delay = GAIT_DELAY
         points = copy.deepcopy(self.body_points)
 
         xy = [[0, 0], [0, 0], [0, 0], [0, 0], [0, 0], [0, 0]]
+        rad = math.radians(angle)
+        angle_cos = math.cos(rad)
+        angle_sin = math.sin(rad)
         for i in range(6):
-            xy[i][0] = ((points[i][0] * math.cos(angle / 180 * math.pi) + points[i][1] * math.sin(angle / 180 * math.pi) - points[i][0]) + x) / F
-            xy[i][1] = ((-points[i][0] * math.sin(angle / 180 * math.pi) + points[i][1] * math.cos(angle / 180 * math.pi) - points[i][1]) + y) / F
+            xy[i][0] = ((points[i][0] * angle_cos + points[i][1] * angle_sin - points[i][0]) + x) / frames
+            xy[i][1] = ((-points[i][0] * angle_sin + points[i][1] * angle_cos - points[i][1]) + y) / frames
 
         if x == 0 and y == 0 and angle == 0:
             self.transform_coordinates(points)
             self.set_leg_angles()
+            print("Move zero.")
 
-        elif gait == "1":
-            for j in range(F):
+        # tripod gait, 3 legs move at a time while 3 stay still
+        elif gait_mode == GAIT_TRIPOD:
+            TRIPOD_A = (0, 2, 4)
+            TRIPOD_B = (1, 3, 5)
+            for j in range(frames):
                 for i in range(3):
-                    if j < (F / 8):
+                    if j < (frames // 8):
                         points[2 * i][0] = points[2 * i][0] - 4 * xy[2 * i][0]
                         points[2 * i][1] = points[2 * i][1] - 4 * xy[2 * i][1]
                         points[2 * i + 1][0] = points[2 * i + 1][0] + 8 * xy[2 * i + 1][0]
                         points[2 * i + 1][1] = points[2 * i + 1][1] + 8 * xy[2 * i + 1][1]
                         points[2 * i + 1][2] = Z + self.body_height
-                    elif j < (F / 4):
+                    elif j < (frames // 4):
                         points[2 * i][0] = points[2 * i][0] - 4 * xy[2 * i][0]
                         points[2 * i][1] = points[2 * i][1] - 4 * xy[2 * i][1]
                         points[2 * i + 1][2] = points[2 * i + 1][2] - z * 8
-                    elif j < (3 * F / 8):
+                    elif j < (3 * frames // 8):
                         points[2 * i][2] = points[2 * i][2] + z * 8
                         points[2 * i + 1][0] = points[2 * i + 1][0] - 4 * xy[2 * i + 1][0]
                         points[2 * i + 1][1] = points[2 * i + 1][1] - 4 * xy[2 * i + 1][1]
-                    elif j < (5 * F / 8):
+                    elif j < (5 * frames // 8):
                         points[2 * i][0] = points[2 * i][0] + 8 * xy[2 * i][0]
                         points[2 * i][1] = points[2 * i][1] + 8 * xy[2 * i][1]
                         points[2 * i + 1][0] = points[2 * i + 1][0] - 4 * xy[2 * i + 1][0]
                         points[2 * i + 1][1] = points[2 * i + 1][1] - 4 * xy[2 * i + 1][1]
-                    elif j < (3 * F / 4):
+                    elif j < (3 * frames // 4):
                         points[2 * i][2] = points[2 * i][2] - z * 8
                         points[2 * i + 1][0] = points[2 * i + 1][0] - 4 * xy[2 * i + 1][0]
                         points[2 * i + 1][1] = points[2 * i + 1][1] - 4 * xy[2 * i + 1][1]
-                    elif j < (7 * F / 8):
+                    elif j < (7 * frames // 8):
                         points[2 * i][0] = points[2 * i][0] - 4 * xy[2 * i][0]
                         points[2 * i][1] = points[2 * i][1] - 4 * xy[2 * i][1]
                         points[2 * i + 1][2] = points[2 * i + 1][2] + z * 8
-                    elif j < (F):
+                    elif j < (frames):
                         points[2 * i][0] = points[2 * i][0] - 4 * xy[2 * i][0]
                         points[2 * i][1] = points[2 * i][1] - 4 * xy[2 * i][1]
                         points[2 * i + 1][0] = points[2 * i + 1][0] + 8 * xy[2 * i + 1][0]
@@ -427,18 +445,21 @@ class Control:
                 self.transform_coordinates(points)
                 self.set_leg_angles()
                 time.sleep(delay)
-        elif gait == "2":
-            number = [5, 2, 1, 0, 3, 4]
+        
+        # wave gait, where 1 leg moves at a time and they take turns
+        elif gait_mode == GAIT_WAVE:
+            sequence = (5, 2, 1, 0, 3, 4)
             for i in range(6):
-                for j in range(int(F / 6)):
+                segment = int(frames // 6)
+                for j in range(segment):
                     for k in range(6):
-                        if number[i] == k:
-                            if j < int(F / 18):
+                        if k == sequence[i]:
+                            if j < int(frames / 18):
                                 points[k][2] += 18 * z
-                            elif j < int(F / 9):
+                            elif j < int(frames / 9):
                                 points[k][0] += 30 * xy[k][0]
                                 points[k][1] += 30 * xy[k][1]
-                            elif j < int(F / 6):
+                            elif j < int(frames / 6):
                                 points[k][2] -= 18 * z
                         else:
                             points[k][0] -= 2 * xy[k][0]
@@ -446,6 +467,9 @@ class Control:
                     self.transform_coordinates(points)
                     self.set_leg_angles()
                     time.sleep(delay)
+        
+        else:
+            raise ValueError("Invalid GAIT supplied.")
 
 if __name__ == '__main__':
     pass
