@@ -30,6 +30,7 @@ GAIT_MAP = {
 FRONT_LEG_OFFSET = -94
 MIDDLE_LEG_OFFSET = -85
 BACK_LEG_OFFSET = -94
+LEG_Z_OFFSET = -14
 
 DEFAULT_LEG_POSITION = [140, 0, 0]
 DEFAULT_LIFT_HEIGHT = 55
@@ -274,36 +275,33 @@ class Control:
         # Leg 1
         self.leg_positions[0][0] = points[0][0] * math.cos(54 / 180 * math.pi) + points[0][1] * math.sin(54 / 180 * math.pi) + FRONT_LEG_OFFSET 
         self.leg_positions[0][1] = -points[0][0] * math.sin(54 / 180 * math.pi) + points[0][1] * math.cos(54 / 180 * math.pi)
-        self.leg_positions[0][2] = points[0][2] - 14
+        self.leg_positions[0][2] = points[0][2] + LEG_Z_OFFSET
         # Leg 2
         self.leg_positions[1][0] = points[1][0] * math.cos(0 / 180 * math.pi) + points[1][1] * math.sin(0 / 180 * math.pi) + MIDDLE_LEG_OFFSET
         self.leg_positions[1][1] = -points[1][0] * math.sin(0 / 180 * math.pi) + points[1][1] * math.cos(0 / 180 * math.pi)
-        self.leg_positions[1][2] = points[1][2] - 14
+        self.leg_positions[1][2] = points[1][2] + LEG_Z_OFFSET
         # Leg 3
         self.leg_positions[2][0] = points[2][0] * math.cos(-54 / 180 * math.pi) + points[2][1] * math.sin(-54 / 180 * math.pi) + BACK_LEG_OFFSET 
         self.leg_positions[2][1] = -points[2][0] * math.sin(-54 / 180 * math.pi) + points[2][1] * math.cos(-54 / 180 * math.pi)
-        self.leg_positions[2][2] = points[2][2] - 14
+        self.leg_positions[2][2] = points[2][2] + LEG_Z_OFFSET
         # Leg 4
         self.leg_positions[3][0] = points[3][0] * math.cos(-126 / 180 * math.pi) + points[3][1] * math.sin(-126 / 180 * math.pi) + BACK_LEG_OFFSET
         self.leg_positions[3][1] = -points[3][0] * math.sin(-126 / 180 * math.pi) + points[3][1] * math.cos(-126 / 180 * math.pi)
-        self.leg_positions[3][2] = points[3][2] - 14
+        self.leg_positions[3][2] = points[3][2] + LEG_Z_OFFSET
         # Leg 5
         self.leg_positions[4][0] = points[4][0] * math.cos(180 / 180 * math.pi) + points[4][1] * math.sin(180 / 180 * math.pi) + MIDDLE_LEG_OFFSET
         self.leg_positions[4][1] = -points[4][0] * math.sin(180 / 180 * math.pi) + points[4][1] * math.cos(180 / 180 * math.pi)
-        self.leg_positions[4][2] = points[4][2] - 14
+        self.leg_positions[4][2] = points[4][2] + LEG_Z_OFFSET
         # Leg 6
         self.leg_positions[5][0] = points[5][0] * math.cos(126 / 180 * math.pi) + points[5][1] * math.sin(126 / 180 * math.pi) + FRONT_LEG_OFFSET
         self.leg_positions[5][1] = -points[5][0] * math.sin(126 / 180 * math.pi) + points[5][1] * math.cos(126 / 180 * math.pi)
-        self.leg_positions[5][2] = points[5][2] - 14
+        self.leg_positions[5][2] = points[5][2] + LEG_Z_OFFSET
 
+    # bound value between a min and max
     def restrict_value(self, value, min_value, max_value):
-        if value < min_value:
-            return min_value
-        elif value > max_value:
-            return max_value
-        else:
-            return value
+        return min(max_value, max(min_value, value))
 
+    # scale value from one range to another proportionally
     def map_value(self, value, from_low, from_high, to_low, to_high):
         return (to_high - to_low) * (value - from_low) / (from_high - from_low) + to_low
 
@@ -354,8 +352,6 @@ class Control:
         return foot_positions
 
     def imu6050(self):
-        old_roll = 0
-        old_pitch = 0
         points = self.calculate_posture_balance(0, 0, 0)
         self.transform_coordinates(points)
         self.set_leg_angles()
@@ -450,12 +446,10 @@ class Control:
         elif gait_mode == GAIT_WAVE:
 
             sequence = (5, 2, 1, 0, 3, 4)
-            segment = frames / 6
 
             for j in range(frames):
 
                 global_phase = j / frames  # 0 → 1
-
                 for i in range(6):
 
                     # Each leg has its own phase offset
@@ -481,8 +475,6 @@ class Control:
 
         else:
             raise ValueError("Invalid GAIT supplied.")
-
-
 
 if __name__ == '__main__':
     pass

@@ -44,7 +44,7 @@ class Servo:
             sub_channel = channel - 16
             self.pwm_40.set_pwm(sub_channel, 0, duty_count)
         else:
-            raise("Error: invalid channel must be between 0 and 32")
+            raise ValueError("Error: invalid channel, channel must be between 0 and 32")
 
 
     def relax(self):
