@@ -373,7 +373,7 @@ class Control:
             self.set_leg_angles()
 
     def run_gait(self, data, Z=40):
-        gait, x_in, y_in, speed_str, angle_str = data
+        _, gait, x_in, y_in, speed_str, angle_str = data
         gait_mode = GAIT_MAP.get(gait, "ERROR_GETTING_GATE")
 
         x = self.restrict_value(int(x_in), -35, 35)
