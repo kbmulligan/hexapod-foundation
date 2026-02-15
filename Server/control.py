@@ -32,6 +32,7 @@ MIDDLE_LEG_OFFSET = -85
 BACK_LEG_OFFSET = -94
 
 DEFAULT_LEG_POSITION = [140, 0, 0]
+DEFAULT_LIFT_HEIGHT = 55
 
 class Control:
     def __init__(self):
@@ -372,7 +373,7 @@ class Control:
             self.transform_coordinates(points)
             self.set_leg_angles()
 
-    def run_gait(self, data, Z=40):
+    def run_gait(self, data, Z=DEFAULT_LIFT_HEIGHT):
         _, gait, x_in, y_in, speed_str, angle_str = data
         gait_mode = GAIT_MAP.get(gait, "ERROR_GETTING_GATE")
 
