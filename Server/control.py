@@ -13,7 +13,9 @@ from servo import Servo
 
 POS_X_LIMIT = 40
 POS_Y_LIMIT = 40
-POS_Z_LIMIT = 20
+POS_Z_LIMIT = 30
+
+BODY_POSITION_Z_OFFSET = -30
 
 ATT_ROLL_LIMIT = 15
 ATT_PITCH_LIMIT = 15
@@ -27,13 +29,54 @@ GAIT_MAP = {
     "2": GAIT_WAVE
 }
 
+LEG_SEQUENCE = ("1", "2", "3", "4", "5", "6")
+JOINT_SEQUENCE = ("COXA", "FEMUR", "TIBIA")
+
+LEG_SERVO_MAP = {
+    "1": {
+        "COXA": 15,
+        "FEMUR": 14,
+        "TIBIA": 13
+    },
+    "2": {
+        "COXA": 12,
+        "FEMUR": 11,
+        "TIBIA": 10
+    },
+    "3": {
+        "COXA": 9,
+        "FEMUR": 8,
+        "TIBIA": 31
+    },
+    "4": {
+        "COXA": 22,
+        "FEMUR": 23,
+        "TIBIA": 27 
+    },
+    "5": {
+        "COXA": 19,
+        "FEMUR": 20,
+        "TIBIA": 21
+    },
+    "6": {
+        "COXA": 16,
+        "FEMUR": 17,
+        "TIBIA": 18
+    }
+}
+
 FRONT_LEG_OFFSET = -94
 MIDDLE_LEG_OFFSET = -85
 BACK_LEG_OFFSET = -94
 LEG_Z_OFFSET = -14
 
 DEFAULT_LEG_POSITION = [140, 0, 0]
+DEFAULT_CALIBRATION_ANGLE = [0, 0, 0]
+DEFAULT_CURRENT_ANGLE = [90, 0, 0]
 DEFAULT_LIFT_HEIGHT = 55
+
+MOVE_LIMIT_X = 35
+MOVE_LIMIT_Y = 35
 
 class Control:
     def __init__(self):
@@ -56,9 +99,30 @@ class Control:
             [-137.1, 189.4, self.body_height]
         ]
         self.calibration_leg_positions = self.read_from_txt('point')
-        self.leg_positions = [[140, 0, 0], [140, 0, 0], [140, 0, 0], [140, 0, 0], [140, 0, 0], [140, 0, 0]]
-        self.calibration_angles = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
-        self.current_angles = [[90, 0, 0], [90, 0, 0], [90, 0, 0], [90, 0, 0], [90, 0, 0], [90, 0, 0]]
+        self.leg_positions = [
+            DEFAULT_LEG_POSITION[:],
+            DEFAULT_LEG_POSITION[:],
+            DEFAULT_LEG_POSITION[:],
+            DEFAULT_LEG_POSITION[:],
+            DEFAULT_LEG_POSITION[:],
+            DEFAULT_LEG_POSITION[:]
+        ]
+        self.calibration_angles = [
+            DEFAULT_CALIBRATION_ANGLE[:], 
+            DEFAULT_CALIBRATION_ANGLE[:], 
+            DEFAULT_CALIBRATION_ANGLE[:], 
+            DEFAULT_CALIBRATION_ANGLE[:], 
+            DEFAULT_CALIBRATION_ANGLE[:], 
+            DEFAULT_CALIBRATION_ANGLE[:]
+        ]
+        self.current_angles = [
+            DEFAULT_CURRENT_ANGLE[:],
+            DEFAULT_CURRENT_ANGLE[:],
+            DEFAULT_CURRENT_ANGLE[:],
+            DEFAULT_CURRENT_ANGLE[:],
+            DEFAULT_CURRENT_ANGLE[:],
+            DEFAULT_CURRENT_ANGLE[:]
+        ]
         self.command_queue = ['', '', '', '', '', '']
         self.calibrate()
         self.set_leg_angles()
@@ -88,15 +152,6 @@ class Control:
         b = math.asin(round(w, 2)) - math.acos(round(v, 2))
         c = math.pi - math.acos(round(u, 2))
         return round(math.degrees(a)), round(math.degrees(b)), round(math.degrees(c))
-
-    def angle_to_coordinate(self, a, b, c, l1=33, l2=90, l3=110):
-        a = math.pi / 180 * a
-        b = math.pi / 180 * b
-        c = math.pi / 180 * c
-        x = round(l3 * math.sin(b + c) + l2 * math.sin(b))
-        y = round(l3 * math.sin(a) * math.cos(b + c) + l2 * math.sin(a) * math.cos(b) + l1 * math.sin(a))
-        z = round(l3 * math.cos(a) * math.cos(b + c) + l2 * math.cos(a) * math.cos(b) + l1 * math.cos(a))
-        return x, y, z
 
     def calibrate(self):
         # ensure assigning independent copies
@@ -135,30 +190,12 @@ class Control:
                 self.current_angles[i + 3][1] = self.restrict_value(90 + self.current_angles[i + 3][1] + self.calibration_angles[i + 3][1], 0, 180)
                 self.current_angles[i + 3][2] = self.restrict_value(180 - (self.current_angles[i + 3][2] + self.calibration_angles[i + 3][2]), 0, 180)
 
-            # Leg 1
-            self.servo.set_servo_angle(15, self.current_angles[0][0])
-            self.servo.set_servo_angle(14, self.current_angles[0][1])
-            self.servo.set_servo_angle(13, self.current_angles[0][2])
-            # Leg 2
-            self.servo.set_servo_angle(12, self.current_angles[1][0])
-            self.servo.set_servo_angle(11, self.current_angles[1][1])
-            self.servo.set_servo_angle(10, self.current_angles[1][2])
-            # Leg 3
-            self.servo.set_servo_angle(9, self.current_angles[2][0])
-            self.servo.set_servo_angle(8, self.current_angles[2][1])
-            self.servo.set_servo_angle(31, self.current_angles[2][2])
-            # Leg 6
-            self.servo.set_servo_angle(16, self.current_angles[5][0])
-            self.servo.set_servo_angle(17, self.current_angles[5][1])
-            self.servo.set_servo_angle(18, self.current_angles[5][2])
-            # Leg 5
-            self.servo.set_servo_angle(19, self.current_angles[4][0])
-            self.servo.set_servo_angle(20, self.current_angles[4][1])
-            self.servo.set_servo_angle(21, self.current_angles[4][2])
-            # Leg 4
-            self.servo.set_servo_angle(22, self.current_angles[3][0])
-            self.servo.set_servo_angle(23, self.current_angles[3][1])
-            self.servo.set_servo_angle(27, self.current_angles[3][2])
+            # set all joint angles based on joint servo channel mapping and current angles given
+            for i, leg in enumerate(LEG_SEQUENCE):
+                for j, joint in enumerate(JOINT_SEQUENCE):
+                    joint_channel = LEG_SERVO_MAP[leg][joint]
+                    joint_angle = self.current_angles[i][j]
+                    self.servo.set_servo_angle(joint_channel, joint_angle)
 
         else:
             print("This coordinate point is out of the active range")
@@ -183,9 +220,16 @@ class Control:
             if cmd.CMD_POSITION in self.command_queue and len(self.command_queue) == 4:
                 if self.status_flag != 0x01:
                     self.relax(False)
-                x = self.restrict_value(int(self.command_queue[1]), -POS_X_LIMIT, POS_X_LIMIT)
-                y = self.restrict_value(int(self.command_queue[2]), -POS_Y_LIMIT, POS_Y_LIMIT)
-                z = self.restrict_value(int(self.command_queue[3]), -POS_Z_LIMIT, POS_Z_LIMIT)
+                x_in = int(self.command_queue[1])
+                y_in = int(self.command_queue[2])
+                z_in = int(self.command_queue[3])
+
+                OLD_Z_LIMIT = 20
+                scaled_z = self.map_value(z_in, -OLD_Z_LIMIT, OLD_Z_LIMIT, -POS_Z_LIMIT, POS_Z_LIMIT)
+
+                x = self.restrict_value(x_in, -POS_X_LIMIT, POS_X_LIMIT)
+                y = self.restrict_value(y_in, -POS_Y_LIMIT, POS_Y_LIMIT)
+                z = self.restrict_value(scaled_z, -POS_Z_LIMIT, POS_Z_LIMIT)
                 self.move_position(x, y, z)
                 self.status_flag = 0x01
                 self.command_queue = ['', '', '', '', '', '']
@@ -310,7 +354,7 @@ class Control:
         for i in range(6):
             points[i][0] = self.body_points[i][0] - x
             points[i][1] = self.body_points[i][1] - y
-            points[i][2] = -30 - z
+            points[i][2] = BODY_POSITION_Z_OFFSET  - z
             self.body_height = points[i][2]
             self.body_points[i][2] = points[i][2]
         self.transform_coordinates(points)
@@ -370,11 +414,11 @@ class Control:
             self.set_leg_angles()
 
     def run_gait(self, data, Z=DEFAULT_LIFT_HEIGHT):
-        _, gait, x_in, y_in, speed_str, angle_str = data
+        _, gait, x_in, y_in, speed_str, angle_str = data       # unpack data and ignore command value
         gait_mode = GAIT_MAP.get(gait, "ERROR_GETTING_GATE")
 
-        x = self.restrict_value(int(x_in), -35, 35)
-        y = self.restrict_value(int(y_in), -35, 35)
+        x = self.restrict_value(int(x_in), -MOVE_LIMIT_X, MOVE_LIMIT_X)
+        y = self.restrict_value(int(y_in), -MOVE_LIMIT_Y, MOVE_LIMIT_Y)
         speed = int(speed_str)
         angle = int(angle_str)
 
@@ -403,10 +447,10 @@ class Control:
         if x == 0 and y == 0 and angle == 0:
             self.transform_coordinates(points)
             self.set_leg_angles()
-            return
+            print("No movement commanded. x, y, angle all set to 0.")
 
         # ================== TRIPOD GAIT =======================
-        if gait_mode == GAIT_TRIPOD:
+        elif gait_mode == GAIT_TRIPOD:
 
             TRIPOD_A = (0, 2, 4)
             TRIPOD_B = (1, 3, 5)
