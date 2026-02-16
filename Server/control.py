@@ -4,12 +4,15 @@ import math
 import copy
 import threading
 import numpy as np
+import yaml
 from gpiozero import OutputDevice
 
 from pid import Incremental_PID
 from command import COMMAND as cmd
 from imu import IMU
 from servo import Servo
+
+DEFAULT_CONFIG_PATH = "./hexapod-config.yaml"
 
 POS_X_LIMIT = 40
 POS_Y_LIMIT = 40
@@ -80,6 +83,7 @@ MOVE_LIMIT_Y = 35
 
 class Control:
     def __init__(self):
+        self.config = self.load_config()
         self.imu = IMU()
         self.servo = Servo()
         self.movement_flag = 0x01
@@ -90,6 +94,10 @@ class Control:
         self.status_flag = 0x00
         self.timeout = 0
         self.body_height = -25
+        self.body_height = self.config["body"]["height"]
+
+        print("self.body_height", self.body_height, type(self.body_height))
+
         self.body_points = [
             [137.1, 189.4, self.body_height], 
             [225, 0, self.body_height], 
@@ -128,6 +136,11 @@ class Control:
         self.set_leg_angles()
         self.condition_thread = threading.Thread(target=self.condition_monitor)
         self.Thread_condition = threading.Condition()
+
+    def load_config(self, path=DEFAULT_CONFIG_PATH):
+        print(f"Loading config from {path} ...")
+        with open(path, "r") as f:
+            return yaml.safe_load(f)
 
     def read_from_txt(self, filename):
         with open(filename + ".txt", "r") as file:

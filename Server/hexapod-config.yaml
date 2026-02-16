@@ -1,0 +1,13 @@
+
+body:
+  height: -25
+
+gait:
+  step_height: 25
+  step_length: 40
+  speed: 0.5
+
+battery:
+  min_voltage: 6.3
+  warning_voltage: 6.6
+  full_voltage: 8.4
