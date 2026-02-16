@@ -1,12 +1,15 @@
 from led import Led
 from adc import ADC
 
-import math, time
+import logging
+import math
+import time
 
 BATTERY_COLOR = [0, 50, 0]    # not super bright green
-USEFUL_VOLTAGE_FLOOR = 4       # below 4 volts the batteries can't do much, so don't need to track that part of the range
+USEFUL_VOLTAGE_FLOOR = 6       # below 4 volts the batteries can't do much, so don't need to track that part of the range
 
 def main():
+ 
     print("Starting battery checker ...")
     led_controller = Led()
     #led_controller.first_test()

@@ -15,12 +15,18 @@ class Buzzer:
         """Close the buzzer pin."""
         self.buzzer_pin.close()           # Close the buzzer pin to release the GPIO resource
 
+def test_buzzer(buzzer):
+    buzzer.set_state(True)            # Turn on the buzzer
+    time.sleep(BUZZER_WAIT_SEC)       # Wait for 1 second
+    buzzer.set_state(False)           # Turn off the buzzer
+
+
 if __name__ == '__main__':
+    BUZZER_WAIT_SEC = 1
     try:
         buzzer = Buzzer()                 # Create an instance of the Buzzer class
-        buzzer.set_state(True)            # Turn on the buzzer
-        time.sleep(1)                     # Wait for 3 second
-        buzzer.set_state(False)           # Turn off the buzzer
+        test_buzzer(buzzer)
+
     finally:
         buzzer.close()                    # Ensure the buzzer pin is closed when the program is interrupted
 
