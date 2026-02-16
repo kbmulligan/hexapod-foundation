@@ -2,10 +2,17 @@
 body:
   height: -25
 
+limits:
+  position:
+    x: 40
+    y: 40 
+    z: 40
+
 gait:
   step_height: 25
   step_length: 40
   speed: 0.5
+  delay_sec: 0.010
 
 battery:
   min_voltage: 6.3

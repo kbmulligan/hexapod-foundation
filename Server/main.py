@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import logging
 import os
 import sys,getopt
 import threading
@@ -8,6 +9,9 @@ from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QApplication, QMainWindow
 #from PyQt5.QtGui import *
 from server import Server
+
+LOG_FILE = 'robot-main.log'
+logger = logging.getLogger(__name__)
 
 class MyWindow(QMainWindow,Ui_server):
     def __init__(self):
@@ -80,6 +84,8 @@ class MyWindow(QMainWindow,Ui_server):
         
 if __name__ == '__main__':
     try:
+        logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
+        logger.info("Starting ...")
         myshow=MyWindow()
         if myshow.user_ui==True:
             myshow.show();   
@@ -91,5 +97,7 @@ if __name__ == '__main__':
                 myshow.close()
         while True:
             pass
+
     except KeyboardInterrupt:
-            myshow.close()
+        myshow.close()
+        logger.info("Stopping ...")

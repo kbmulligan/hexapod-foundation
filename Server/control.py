@@ -2,6 +2,7 @@
 import time
 import math
 import copy
+import logging
 import threading
 import numpy as np
 import yaml
@@ -12,11 +13,12 @@ from command import COMMAND as cmd
 from imu import IMU
 from servo import Servo
 
+
 DEFAULT_CONFIG_PATH = "./hexapod-config.yaml"
 
 POS_X_LIMIT = 40
 POS_Y_LIMIT = 40
-POS_Z_LIMIT = 30
+POS_Z_LIMIT = 40
 
 BODY_POSITION_Z_OFFSET = -30
 
@@ -24,7 +26,6 @@ ATT_ROLL_LIMIT = 15
 ATT_PITCH_LIMIT = 15
 ATT_YAW_LIMIT = 15
 
-GAIT_DELAY = 0.02
 GAIT_TRIPOD = "GAIT_TRIPOD" 
 GAIT_WAVE = "GAIT_WAVE" 
 GAIT_MAP = {
@@ -81,9 +82,11 @@ DEFAULT_LIFT_HEIGHT = 55
 MOVE_LIMIT_X = 35
 MOVE_LIMIT_Y = 35
 
+
 class Control:
     def __init__(self):
         self.config = self.load_config()
+        self.logger = logging.getLogger(__name__)
         self.imu = IMU()
         self.servo = Servo()
         self.movement_flag = 0x01
@@ -95,8 +98,10 @@ class Control:
         self.timeout = 0
         self.body_height = -25
         self.body_height = self.config["body"]["height"]
+        self.gait_delay = self.config["gait"]["delay_sec"]
 
-        print("self.body_height", self.body_height, type(self.body_height))
+        self.logger.info("self.body_height", self.body_height, type(self.body_height))
+        self.logger.info("self.gait_delay", self.gait_delay, type(self.gait_delay))
 
         self.body_points = [
             [137.1, 189.4, self.body_height], 
@@ -211,7 +216,7 @@ class Control:
                     self.servo.set_servo_angle(joint_channel, joint_angle)
 
         else:
-            print("This coordinate point is out of the active range")
+            raise ValueError("This coordinate point is out of the active range")
 
     def check_point_validity(self):
         is_valid = True
@@ -442,7 +447,7 @@ class Control:
             frames = round(self.map_value(speed, 2, 10, 171, 45))
 
         frames = max(8, frames)  # ensure enough frames for smooth gait
-        delay = GAIT_DELAY
+        delay = self.gait_delay
 
         points = copy.deepcopy(self.body_points)
 
