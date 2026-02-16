@@ -100,8 +100,8 @@ class Control:
         self.body_height = self.config["body"]["height"]
         self.gait_delay = self.config["gait"]["delay_sec"]
 
-        self.logger.info("self.body_height", self.body_height, type(self.body_height))
-        self.logger.info("self.gait_delay", self.gait_delay, type(self.gait_delay))
+        self.logger.info("self.body_height: {} {}".format(self.body_height, type(self.body_height)))
+        self.logger.info("self.gait_delay: {} {}".format(self.gait_delay, type(self.gait_delay)))
 
         self.body_points = [
             [137.1, 189.4, self.body_height], 
