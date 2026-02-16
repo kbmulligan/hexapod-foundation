@@ -3,11 +3,18 @@ import json
 import os
 from string import Template
 from adc import ADC
+from buzzer import Buzzer
+from control import Control
 
 PORT = 8888
 VOLTAGE_WARN_LIMIT = 6.1
 VOLTAGE_CAUTION_LIMIT = 6.9
 
+HTML_TEMPLATE_FILE = 'robot-ui-template.html'
+
+# Initialize hardware controllers
+buzzer = Buzzer()
+control = Control()
 
 class BatteryRequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -28,7 +35,7 @@ class BatteryRequestHandler(http.server.BaseHTTPRequestHandler):
             control_color = "#dc3545" if control_v < VOLTAGE_WARN_LIMIT else "#ddcc00" if control_v < VOLTAGE_CAUTION_LIMIT else "#28a745"
             
             # Load HTML Template
-            template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'battery_template.html')
+            template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), HTML_TEMPLATE_FILE)
             with open(template_path, 'r', encoding='utf-8') as f:
                 template = Template(f.read())
                 
@@ -57,6 +64,36 @@ class BatteryRequestHandler(http.server.BaseHTTPRequestHandler):
             }
             self.wfile.write(json.dumps(data).encode('utf-8'))
             
+        else:
+            self.send_error(404)
+
+    def do_POST(self):
+        if self.path == '/api/buzzer':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data)
+            
+            state = data.get('state', False)
+            buzzer.set_state(state)
+            
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{"status": "ok"}')
+            
+        elif self.path == '/api/move':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data)
+            
+            if data.get('direction') == 'forward':
+                # Data format for run_gait: [cmd, gait_mode, x, y, speed, angle]
+                # Gait 1 = Tripod, y=10 is forward, speed=5
+                move_cmd = ['', '1', '0', '10', '5', '0']
+                control.run_gait(move_cmd)
+            
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'{"status": "ok"}')
         else:
             self.send_error(404)
 
