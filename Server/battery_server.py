@@ -1,15 +1,17 @@
 import http.server
 import json
+import os
+from string import Template
 from adc import ADC
 
-PORT = 8000
+PORT = 8888
 VOLTAGE_WARN_LIMIT = 6.1
 VOLTAGE_CAUTION_LIMIT = 6.9
 
 
 class BatteryRequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == '/' or self.path == '/index.html':
+        if self.path in ('/', '/index.html'):
             self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
@@ -25,61 +27,17 @@ class BatteryRequestHandler(http.server.BaseHTTPRequestHandler):
             servo_color = "#dc3545" if servo_v < VOLTAGE_WARN_LIMIT else "#ddcc00" if servo_v < VOLTAGE_CAUTION_LIMIT else "#28a745"
             control_color = "#dc3545" if control_v < VOLTAGE_WARN_LIMIT else "#ddcc00" if control_v < VOLTAGE_CAUTION_LIMIT else "#28a745"
             
-            # HTML Template
-            html = f"""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Hexapod Battery Monitor</title>
-                <meta http-equiv="refresh" content="2">
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <style>
-                    body {{
-                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                        background-color: #f0f2f5;
-                        color: #333;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        height: 100vh;
-                        margin: 0;
-                    }}
-                    .card {{
-                        background: white;
-                        padding: 2rem;
-                        border-radius: 12px;
-                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                        text-align: center;
-                        min-width: 300px;
-                    }}
-                    h1 {{ margin-top: 0; color: #333; }}
-                    .reading {{
-                        margin: 1.5rem 0;
-                        padding: 1rem;
-                        background: #f8f9fa;
-                        border-radius: 8px;
-                        border-left: 5px solid #ccc;
-                    }}
-                    .label {{ display: block; font-size: 0.9rem; color: #666; margin-bottom: 0.5rem; }}
-                    .value {{ font-size: 2.5rem; font-weight: bold; }}
-                    .unit {{ font-size: 1rem; color: #888; }}
-                </style>
-            </head>
-            <body>
-                <div class="card">
-                    <h1>Battery Status</h1>
-                    <div class="reading" style="border-left-color: {servo_color}">
-                        <span class="label">Servo Power</span>
-                        <span class="value" style="color: {servo_color}">{servo_v:.2f}</span> <span class="unit">V</span>
-                    </div>
-                    <div class="reading" style="border-left-color: {control_color}">
-                        <span class="label">Control Power</span>
-                        <span class="value" style="color: {control_color}">{control_v:.2f}</span> <span class="unit">V</span>
-                    </div>
-                </div>
-            </body>
-            </html>
-            """
+            # Load HTML Template
+            template_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'battery_template.html')
+            with open(template_path, 'r', encoding='utf-8') as f:
+                template = Template(f.read())
+                
+            html = template.substitute(
+                servo_color=servo_color,
+                control_color=control_color,
+                servo_v=f"{servo_v:.2f}",
+                control_v=f"{control_v:.2f}"
+            )
             self.wfile.write(html.encode('utf-8'))
             
         elif self.path == '/api/battery':
